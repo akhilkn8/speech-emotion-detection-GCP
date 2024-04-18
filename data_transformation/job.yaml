@@ -1,0 +1,59 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  annotations:
+    client.knative.dev/user-image: us-east4-docker.pkg.dev/firm-site-417617/data-transformation/data_trans_img@sha256:71055f70a000c3d6b7ed45a0e265e25eab8e0897cc20e79fad46c117e62829d8
+    run.googleapis.com/creator: akhilkn8@gmail.com
+    run.googleapis.com/lastModifier: akhilkn8@gmail.com
+  labels:
+    cloud.googleapis.com/location: us-east4
+    run.googleapis.com/lastUpdatedTime: '2024-04-12T03:46:30.394389Z'
+    run.googleapis.com/satisfiesPzs: 'true'
+  name: data-trans-img
+  namespace: '1016052942653'
+spec:
+  template:
+    metadata:
+      annotations:
+        client.knative.dev/user-image: us-east4-docker.pkg.dev/firm-site-417617/data-transformation/data_trans_img@sha256:71055f70a000c3d6b7ed45a0e265e25eab8e0897cc20e79fad46c117e62829d8
+        run.googleapis.com/client-name: cloud-console
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      taskCount: 1
+      template:
+        spec:
+          containers:
+          - image: us-east4-docker.pkg.dev/firm-site-417617/data-transformation/data_trans_img@sha256:71055f70a000c3d6b7ed45a0e265e25eab8e0897cc20e79fad46c117e62829d8
+            volumeMounts:
+              - mountPath: /app/metadata/train
+                name: train
+              - mountPath: /app/metadata/test
+                name: test
+              - mountPath: /app/artifacts
+                name: data
+            resources:
+              limits:
+                cpu: 8000m
+                memory: 4Gi
+          volumes:
+              - name: train
+                csi:
+                  driver: gcsfuse.run.googleapis.com
+                  readOnly: True
+                  volumeAttributes:
+                    bucketName: train-bucket-model
+              - name: test
+                csi:
+                  driver: gcsfuse.run.googleapis.com
+                  readOnly: True
+                  volumeAttributes:
+                    bucketName: test-bucket-model
+              - name: data
+                csi:
+                  driver: gcsfuse.run.googleapis.com
+                  readOnly: False
+                  volumeAttributes:
+                    bucketName: artifacts-speech-emotion
+          maxRetries: 3
+          serviceAccountName: 1016052942653-compute@developer.gserviceaccount.com
+          timeoutSeconds: '600'

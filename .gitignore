@@ -7,7 +7,8 @@ __pycache__/
 *.so
 
 # Data Folder
-*/data
+data_ingestion
+*.DS_Store
 
 # Distribution / packaging
 .Python

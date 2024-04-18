@@ -1,0 +1,51 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  annotations:
+    client.knative.dev/user-image: us-east4-docker.pkg.dev/firm-site-417617/data-generation/data_gen_img:staging
+    run.googleapis.com/creator: akhilkn8@gmail.com
+    run.googleapis.com/lastModifier: akhilkn8@gmail.com
+  labels:
+    cloud.googleapis.com/location: us-east4
+    run.googleapis.com/lastUpdatedTime: '2024-04-11T21:56:33.800159Z'
+    run.googleapis.com/satisfiesPzs: 'true'
+  name: data-gen-img
+  namespace: '1016052942653'
+spec:
+  template:
+    metadata:
+      annotations:
+        client.knative.dev/user-image: us-east4-docker.pkg.dev/firm-site-417617/data-generation/data_gen_img:staging
+        run.googleapis.com/client-name: cloud-console
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      taskCount: 1
+      template:
+        spec:
+          containers:
+          - image: us-east4-docker.pkg.dev/firm-site-417617/data-generation/data_gen_img:staging
+            volumeMounts:
+            - mountPath: /app/train
+              name: train
+            - mountPath: /app/test
+              name: test
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 512Mi
+          volumes:
+              - name: train
+                csi:
+                  driver: gcsfuse.run.googleapis.com
+                  readOnly: False
+                  volumeAttributes:
+                    bucketName: train-bucket-model
+              - name: test
+                csi:
+                  driver: gcsfuse.run.googleapis.com
+                  readOnly: False
+                  volumeAttributes:
+                    bucketName: test-bucket-model
+          maxRetries: 3
+          serviceAccountName: 1016052942653-compute@developer.gserviceaccount.com
+          timeoutSeconds: '600'

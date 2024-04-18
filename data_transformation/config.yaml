@@ -1,0 +1,11 @@
+### ================================================================
+###              DATA TRANSFORMATION CONFIGURATION
+### ================================================================
+
+data_transformation:
+  root_dir: ./artifacts/data_transformation
+  metadata_path: ./metadata
+  output_path: ./artifacts/data_transformation
+  train_path: ./artifacts/data_transformation/train_data.parquet
+  val_path: ./artifacts/data_transformation/val_data.parquet
+  test_path: ./artifacts/data_transformation/test_data.parquet
