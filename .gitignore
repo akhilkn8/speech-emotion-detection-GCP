@@ -8,6 +8,7 @@ __pycache__/
 
 # Data Folder
 data_ingestion
+model_training/data
 *.DS_Store
 
 # Distribution / packaging
