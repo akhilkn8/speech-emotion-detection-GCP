@@ -7,5 +7,5 @@ WORKDIR /app
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY . .
+COPY --chmod=777 . .
 CMD [ "python", "main.py" ]

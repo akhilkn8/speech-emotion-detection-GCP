@@ -3,8 +3,10 @@
 ### ================================================================
 
 data_transformation:
-  root_dir: ./artifacts/data_transformation
+  root_dir: ./artifacts
   metadata_path: ./metadata
+  metadata_train_path: ./metadata_train
+  metadata_test_path: ./metadata_test
   output_path: ./artifacts/data_transformation
   train_path: ./artifacts/data_transformation/train_data.parquet
   val_path: ./artifacts/data_transformation/val_data.parquet

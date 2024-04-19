@@ -163,6 +163,7 @@ class ModelTrainer:
         mlflow.set_experiment("SER_v1")
         with mlflow.start_run():
             best_params = self.model_params
+            BATCH_SIZE = self.model_params.get('batch_size', 32)
             X_train, y_train_enc, X_val, y_val_enc = self.prep_data_for_training()
             logger.info("Archiving train-val datasets to disk...")
             np.save(f"{self.config.root_dir}/X_train.npy", X_train)
@@ -204,12 +205,12 @@ class ModelTrainer:
             logger.info("Begin Model Training")
             start = timeit.default_timer()
             rlrp = ReduceLROnPlateau(
-                monitor="val_loss", factor=0.4, verbose=0, patience=2, min_lr=0.0000001
+                monitor="val_loss", factor=0.4, verbose=1, patience=2, min_lr=0.000001
             )
             history = model.fit(
                 X_train,
                 y_train_enc,
-                batch_size=64,
+                batch_size=16,
                 epochs=epochs,
                 validation_data=(X_val, y_val_enc),
                 callbacks=[rlrp, LoggingCallback(logger.info)],
@@ -223,9 +224,11 @@ class ModelTrainer:
             # Save model
             logger.info("Export Trained Model for future inference")
             model_file_name = f'{self.config.model_name}_htuned' if hypertune else f'{self.config.model_name}'
-            joblib.dump(
-                model, os.path.join(self.config.root_dir, model_file_name)
-            )
+            model.save(os.path.join(self.config.root_dir, model_file_name))
+            model.save_weights(f'{os.path.join(self.config.root_dir, model_file_name)}.weights.h5') 
+            # joblib.dump(
+            #     model, os.path.join(self.config.root_dir, model_file_name)
+            # )
 
     def cnn_model_1(
         self, inp_shape, n_filters, kernel_size, pool_size, dropout_rate, **kwargs
@@ -249,56 +252,25 @@ class ModelTrainer:
             model = cnn_model_1(inp_shape=100, n_filters=32, kernel_size=3, pool_size=2, dropout_rate=0.2)
         """
         model = Sequential()
-        model.add(
-            Conv1D(
-                n_filters,
-                kernel_size=kernel_size,
-                strides=1,
-                padding="same",
-                activation="relu",
-                input_shape=(inp_shape, 1),
-            )
-        )
-        model.add(MaxPooling1D(pool_size=pool_size, strides=2, padding="same"))
+        model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=1, padding="same", activation="relu", input_shape=(inp_shape, 1),))
+        model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=2, padding="same", activation="relu", input_shape=(inp_shape, 1),))
+        model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
+        model.add(BatchNormalization())
 
-        model.add(
-            Conv1D(
-                n_filters,
-                kernel_size=kernel_size,
-                strides=1,
-                padding="same",
-                activation="relu",
-            )
-        )
-        model.add(MaxPooling1D(pool_size=pool_size, strides=2, padding="same"))
+        model.add(Conv1D(n_filters*2, kernel_size=kernel_size, strides=1, padding="same", activation="relu",))
+        model.add(Conv1D(n_filters*2, kernel_size=kernel_size, strides=2, padding="same", activation="relu",))
+        model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
+        model.add(BatchNormalization())
 
-        model.add(
-            Conv1D(
-                n_filters // 2,
-                kernel_size=kernel_size,
-                strides=1,
-                padding="same",
-                activation="relu",
-            )
-        )
-        model.add(MaxPooling1D(pool_size=pool_size, strides=2, padding="same"))
+        model.add(Conv1D(n_filters*4, kernel_size=kernel_size, strides=1, padding="same", activation="relu",))
+        model.add(Conv1D(n_filters*4, kernel_size=kernel_size, strides=2, padding="same", activation="relu",))
+        model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
+        model.add(BatchNormalization())
         model.add(Dropout(dropout_rate))
 
-        model.add(
-            Conv1D(
-                n_filters // 4,
-                kernel_size=kernel_size,
-                strides=1,
-                padding="same",
-                activation="relu",
-            )
-        )
-        model.add(MaxPooling1D(pool_size=pool_size, strides=2, padding="same"))
         model.add(Flatten())
-
-        model.add(Dense(units=32, activation="relu"))
-        model.add(Dropout(dropout_rate))
-
+        model.add(Dense(units=64, activation="relu"))
+        model.add(Dense(units=16, activation="relu"))
         model.add(Dense(units=7, activation="softmax"))
 
         return model

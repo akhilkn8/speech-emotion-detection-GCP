@@ -448,8 +448,10 @@ class DataTransformation:
             None.
         """
 
-        # TODO: Better way to do this?
-        metadata_dir = os.path.join(self.config.metadata_path, f'{self.stage}', f'metadata_{self.stage}.csv')
+        if self.stage == 'train':
+            metadata_dir = os.path.join(self.config.metadata_train_path, f'metadata_{self.stage}.csv')
+        elif self.stage == 'test':
+            metadata_dir = os.path.join(self.config.metadata_test_path, f'metadata_{self.stage}.csv')
 
         data = pd.read_csv(metadata_dir)
         data = data.dropna()
