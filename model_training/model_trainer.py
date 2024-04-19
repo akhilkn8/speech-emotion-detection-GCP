@@ -104,10 +104,10 @@ class ModelTrainer:
             float: The mean accuracy score obtained during hyperparameter tuning.
         """
         # Define the hyperparameters to be tuned
-        n_filters = trial.suggest_int("n_filters", 64, 256, log=True)
+        n_filters = [int(trial.suggest_categorical("num_filters", [32, 64, 128, 256]))]
         kernel_size = trial.suggest_int("kernel_size", 3, 10)
         pool_size = trial.suggest_int("pool_size", 2, 5)
-        dropout_rate = trial.suggest_uniform("dropout_rate", 0.1, 0.5)
+        dropout_rate = trial.suggest_discrete_uniform("drop_out", 0.05, 0.5, 0.05)
 
         # Build the CNN model with the suggested hyperparameters
         model = self.cnn_model_1(
