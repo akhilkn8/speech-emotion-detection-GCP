@@ -1,7 +1,8 @@
+from datetime import datetime
 import os
 import yaml
 import timeit
-import joblib
+import uuid
 import numpy as np
 import pandas as pd
 
@@ -21,8 +22,8 @@ from keras.layers import (
 )
 # from keras.utils import to_categorical
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
-import mlflow
-from mlflow.tracking import MlflowClient
+
+import google.cloud.aiplatform as aiplatform
 
 from logger import logger
 from config_entity import ModelTrainerConfig
@@ -160,75 +161,82 @@ class ModelTrainer:
             # Example 1: Train the model without hyperparameter tuning: train()
             # Example 2: Train the model with hyperparameter tuning:    train(hypertune=True)
         """
-        mlflow.set_experiment("SER_v1")
-        with mlflow.start_run():
-            best_params = self.model_params
-            BATCH_SIZE = self.model_params.get('batch_size', 32)
-            X_train, y_train_enc, X_val, y_val_enc = self.prep_data_for_training()
-            logger.info("Archiving train-val datasets to disk...")
-            np.save(f"{self.config.root_dir}/X_train.npy", X_train)
-            np.save(f"{self.config.root_dir}/X_val.npy", X_val)
-            np.save(f"{self.config.root_dir}/y_train.npy", y_train_enc)
-            np.save(f"{self.config.root_dir}/y_val.npy", y_val_enc)
-            logger.info(
-                f"Train Data: {X_train.shape}, Train Targets: {y_train_enc.shape}"
-            )
 
-            # Hyper Parameter Tuning
-            if hypertune:
-                logger.info("=== Hyperparameter Tuning using Optuna ===")
-                study = optuna.create_study(direction="maximize")
-                # study.optimize(self.hp_tune, (n_trials=25, x_train, y_train))
-                study.optimize(
-                    lambda trial: self.hp_tune_cnn(trial, X_train, y_train_enc),
-                    n_trials=5,
-                )
-                best_params = study.best_params
-                logger.info(f"Best Parameters Found: {best_params}")
+        aiplatform.init(experiment='speech-emotion', project='firm-site-417617', location='us-east1', staging_bucket='model-artifact-registry')
+        aiplatform.start_run(run=uuid.uuid4().hex,)
+        best_params = self.model_params
+        BATCH_SIZE = self.model_params.get('batch_size', 32)
+        hyperparams = self.model_params
+        hyperparams["epochs"] = epochs
+        hyperparams["batch_size"] = BATCH_SIZE
+        aiplatform.log_params(hyperparams)
 
-                # Update best hyperparameters
-                self.model_params = best_params
-                # # Write new hyperparameters
-                if self.model_params != best_params:
-                    with open(PARAMS_FILE_PATH, "r") as f:
-                        tuned_params = yaml.safe_load(f)
-                    tuned_params["model_params"]["CNN"] = best_params
-                    with open(PARAMS_FILE_PATH, "w") as f:
-                        yaml.dump(tuned_params, f, default_flow_style=False)
+        X_train, y_train_enc, X_val, y_val_enc = self.prep_data_for_training()
+        logger.info("Archiving train-val datasets to disk...")
+        np.save(f"{self.config.root_dir}/X_train.npy", X_train)
+        np.save(f"{self.config.root_dir}/X_val.npy", X_val)
+        np.save(f"{self.config.root_dir}/y_train.npy", y_train_enc)
+        np.save(f"{self.config.root_dir}/y_val.npy", y_val_enc)
+        logger.info(
+            f"Train Data: {X_train.shape}, Train Targets: {y_train_enc.shape}"
+        )
 
-            # Create a CNN model
-            model = self.cnn_model_1(X_train.shape[1], **self.model_params)
-            model.compile(
-                optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"]
+        # Hyper Parameter Tuning
+        if hypertune:
+            logger.info("=== Hyperparameter Tuning using Optuna ===")
+            study = optuna.create_study(direction="maximize")
+            # study.optimize(self.hp_tune, (n_trials=25, x_train, y_train))
+            study.optimize(
+                lambda trial: self.hp_tune_cnn(trial, X_train, y_train_enc),
+                n_trials=5,
             )
-            model.summary(print_fn=logger.info)
-            logger.info("Begin Model Training")
-            start = timeit.default_timer()
-            rlrp = ReduceLROnPlateau(
-                monitor="val_loss", factor=0.4, verbose=1, patience=2, min_lr=0.000001
-            )
-            history = model.fit(
-                X_train,
-                y_train_enc,
-                batch_size=16,
-                epochs=epochs,
-                validation_data=(X_val, y_val_enc),
-                callbacks=[rlrp, LoggingCallback(logger.info)],
-            )
-            elapsed_time = timeit.default_timer() - start
-            logger.info(f"Training Duration: {elapsed_time:.2f} secs")
-            # Logging the model
-            mlflow.keras.log_model(model, "model")
-            mlflow.log_params(self.model_params)
+            best_params = study.best_params
+            logger.info(f"Best Parameters Found: {best_params}")
 
-            # Save model
-            logger.info("Export Trained Model for future inference")
-            model_file_name = f'{self.config.model_name}_htuned' if hypertune else f'{self.config.model_name}'
-            model.save(os.path.join(self.config.root_dir, model_file_name))
-            model.save_weights(f'{os.path.join(self.config.root_dir, model_file_name)}.weights.h5') 
-            # joblib.dump(
-            #     model, os.path.join(self.config.root_dir, model_file_name)
-            # )
+            # Update best hyperparameters
+            self.model_params = best_params
+            # # Write new hyperparameters
+            if self.model_params != best_params:
+                with open(PARAMS_FILE_PATH, "r") as f:
+                    tuned_params = yaml.safe_load(f)
+                tuned_params["model_params"]["CNN"] = best_params
+                with open(PARAMS_FILE_PATH, "w") as f:
+                    yaml.dump(tuned_params, f, default_flow_style=False)
+
+        # Create a CNN model
+        model = self.cnn_model_1(X_train.shape[1], **self.model_params)
+        model.compile(
+            optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"]
+        )
+        model.summary(print_fn=logger.info)
+        logger.info("Begin Model Training")
+        start = timeit.default_timer()
+        rlrp = ReduceLROnPlateau(
+            monitor="val_loss", factor=0.4, verbose=1, patience=2, min_lr=0.000001
+        )
+        history = model.fit(
+            X_train,
+            y_train_enc,
+            batch_size=16,
+            epochs=epochs,
+            validation_data=(X_val, y_val_enc),
+            callbacks=[rlrp, LoggingCallback(logger.info)],
+        )
+        elapsed_time = timeit.default_timer() - start
+        logger.info(f"Training Duration: {elapsed_time:.2f} secs")
+
+        metrics = model.evaluate(X_val, y_val_enc, return_dict=True)
+        aiplatform.log_metrics(metrics)
+
+        # Logging the model
+        # mlflow.keras.log_model(model, "model")
+        # mlflow.log_params(self.model_params)
+
+        # Save model
+        logger.info("Export Trained Model for future inference")
+        model_file_name = f'{self.config.model_name}_htuned' if hypertune else f'{self.config.model_name}'
+        model.save(os.path.join(self.config.root_dir, model_file_name))
+        model.save_weights(f'{os.path.join(self.config.root_dir, model_file_name)}.weights.h5') 
 
     def cnn_model_1(
         self, inp_shape, n_filters, kernel_size, pool_size, dropout_rate, **kwargs
@@ -254,6 +262,7 @@ class ModelTrainer:
         model = Sequential()
         model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=1, padding="same", activation="relu", input_shape=(inp_shape, 1),))
         model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=2, padding="same", activation="relu", input_shape=(inp_shape, 1),))
+        model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=2, padding="same", activation="relu", input_shape=(inp_shape, 1),))
         model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
         model.add(BatchNormalization())
 
@@ -262,7 +271,6 @@ class ModelTrainer:
         model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
         model.add(BatchNormalization())
 
-        model.add(Conv1D(n_filters*4, kernel_size=kernel_size, strides=1, padding="same", activation="relu",))
         model.add(Conv1D(n_filters*4, kernel_size=kernel_size, strides=2, padding="same", activation="relu",))
         model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
         model.add(BatchNormalization())
