@@ -1,12 +1,13 @@
 from configuration import ConfigurationManager
-from model_trainer import ModelTrainer
+from model_evaluator import ModelEvaluation
 from logger import logger
+
 # from pathlib import Path
 
-STAGE_NAME = "model training stage"
+STAGE_NAME = "model evaluation stage"
 
 
-class ModelTrainerTrainingPipeline:
+class ModelEvaluationPipeline:
     """
     Class for model trainer training pipeline.
 
@@ -37,9 +38,11 @@ class ModelTrainerTrainingPipeline:
     def main(self):
         try:
             config_manager = ConfigurationManager()
-            model_trainer_config = config_manager.get_model_trainer_config()
-            model_trainer = ModelTrainer(config=model_trainer_config)
-            model_trainer.train(hypertune=self.hypertune, epochs=self.epochs)
+            model_eval_config = config_manager.get_model_evaluation_config()
+            model_eval = ModelEvaluation(
+                config=model_eval_config, experiment_name="CNN_Evaluation"
+            )
+            model_eval.evaluate()
         except Exception as e:
             raise e
 
@@ -47,7 +50,7 @@ class ModelTrainerTrainingPipeline:
 if __name__ == "__main__":
     try:
         logger.info(f">>>> stage {STAGE_NAME} started <<<<")
-        obj = ModelTrainerTrainingPipeline()
+        obj = ModelEvaluationPipeline()
         obj.main()
         logger.info(f">>>> stage {STAGE_NAME} completed <<<<\n\nx========x")
     except Exception as e:
