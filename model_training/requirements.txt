@@ -1,5 +1,4 @@
 keras
-mlflow
 optuna
 python-box
 pyYAML
@@ -9,3 +8,5 @@ pandas
 joblib
 scikit-learn
 ensure
+python-dotenv
+google-cloud-aiplatform

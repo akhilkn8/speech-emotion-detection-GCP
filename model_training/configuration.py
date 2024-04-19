@@ -1,8 +1,10 @@
 from pathlib import Path
 from utils import read_yaml, create_directories
 import os
+from dotenv import load_dotenv
 from config_entity import ModelTrainerConfig
 
+load_dotenv()
 
 class ConfigurationManager:
     """
@@ -69,6 +71,10 @@ class ConfigurationManager:
         Methods:
             None.
         """
+
+        RUNTIME = os.environ.get('RUNTIME', 'GCP')
+        if RUNTIME == 'local':
+            config_filepath = Path(f'./config_local.yaml')
 
         self.config = read_yaml(config_filepath)
         self.params = read_yaml(params_filepath)

@@ -1,0 +1,9 @@
+### ================================================================
+###                 MODEL TRAIN CONFIGURATION
+### ================================================================
+
+model_trainer:
+  root_dir: ./data
+  train_path: ./data/train_data.parquet
+  val_path: ./data/val_data.parquet
+  model_name: model.keras
