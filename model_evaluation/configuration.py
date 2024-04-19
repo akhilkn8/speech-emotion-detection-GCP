@@ -1,7 +1,7 @@
 from pathlib import Path
 from utils import read_yaml, create_directories
 import os
-from config_entity import ModelTrainerConfig
+from config_entity import ModelEvaluationConfig
 
 
 class ConfigurationManager:
@@ -46,9 +46,9 @@ class ConfigurationManager:
 
     def __init__(
         self,
-        config_filepath=Path('./config.yaml'),
-        params_filepath=Path('./params.yaml'),
-        schema_filepath=Path('./schema.yaml'),
+        config_filepath=Path("./config.yaml"),
+        params_filepath=Path("./params.yaml"),
+        schema_filepath=Path("./schema.yaml"),
     ):
         """
         Class for configuration management.
@@ -76,8 +76,7 @@ class ConfigurationManager:
 
         # create_directories([self.config.artifacts_root])
 
-
-    def get_model_trainer_config(self) -> ModelTrainerConfig:
+    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
         """
         Method for retrieving the model trainer configuration.
 
@@ -101,15 +100,13 @@ class ConfigurationManager:
 
         create_directories([config.root_dir])
 
-        model_trainer_config = ModelTrainerConfig(
+        model_trainer_config = ModelEvaluationConfig(
             root_dir=config.root_dir,
-            train_path=config.train_path,
-            val_path=config.val_path,
-            model_name=config.model_name,
+            test_path=config.test_path,
+            model_path=config.model_path,
+            encoder_path=config.encoder_path,
             params=params,
             target_col=label,
         )
 
         return model_trainer_config
-
-    
