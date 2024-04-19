@@ -36,7 +36,15 @@ docker tag model_training_img us-east1-docker.pkg.dev/firm-site-417617/model-tra
 docker push us-east1-docker.pkg.dev/firm-site-417617/model-training/model_training_img:staging
 ```
 
-TODO:
+PUSH GCR:
+```bash
+gcloud auth login
+gcloud config set project firm-site-417617
+gcloud auth configure-docker us-east1-docker.pkg.dev,us-east4-docker.pkg.dev
+docker push us-east4-docker.pkg.dev/firm-site-417617/model-training/model_train_img:staging
+```
+
+DONE:
 1. train, test, val splits to be done
 2. transform dag: try to pass stage as params in container_overides: https://airflow.apache.org/docs/apache-airflow-providers-google/stable/operators/cloud/cloud_run.html
 3. training: using Vertex AI operator : https://airflow.apache.org/docs/apache-airflow-providers-google/stable/operators/cloud/vertex_ai.html#creating-an-endpoint-service
