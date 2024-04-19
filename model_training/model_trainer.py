@@ -20,15 +20,17 @@ from keras.layers import (
     Dropout,
     BatchNormalization,
 )
+
 # from keras.utils import to_categorical
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
-
+from joblib import dump
 import google.cloud.aiplatform as aiplatform
 
 from logger import logger
 from config_entity import ModelTrainerConfig
 
-PARAMS_FILE_PATH = './params.yaml'
+PARAMS_FILE_PATH = "./params.yaml"
+
 
 class LoggingCallback(Callback):
     """Callback that logs message at end of epoch.
@@ -147,6 +149,8 @@ class ModelTrainer:
         y_val_enc = self.encoder.fit_transform(np.array(y_val).reshape(-1, 1)).toarray()
         X_train = np.expand_dims(X_train, axis=2)
         X_val = np.expand_dims(X_val, axis=2)
+        enc_outfile = os.path.join(f"{self.config.root_dir}", "encoder.bin")
+        dump(self.encoder, enc_outfile, compress=True)
 
         return X_train, y_train_enc, X_val, y_val_enc
 
@@ -162,10 +166,17 @@ class ModelTrainer:
             # Example 2: Train the model with hyperparameter tuning:    train(hypertune=True)
         """
 
-        aiplatform.init(experiment='speech-emotion', project='firm-site-417617', location='us-east1', staging_bucket='model-artifact-registry')
-        aiplatform.start_run(run=uuid.uuid4().hex,)
+        aiplatform.init(
+            experiment="speech-emotion",
+            project="firm-site-417617",
+            location="us-east1",
+            staging_bucket="model-artifact-registry",
+        )
+        aiplatform.start_run(
+            run=uuid.uuid4().hex,
+        )
         best_params = self.model_params
-        BATCH_SIZE = self.model_params.get('batch_size', 32)
+        BATCH_SIZE = self.model_params.get("batch_size", 32)
         hyperparams = self.model_params
         hyperparams["epochs"] = epochs
         hyperparams["batch_size"] = BATCH_SIZE
@@ -177,9 +188,7 @@ class ModelTrainer:
         np.save(f"{self.config.root_dir}/X_val.npy", X_val)
         np.save(f"{self.config.root_dir}/y_train.npy", y_train_enc)
         np.save(f"{self.config.root_dir}/y_val.npy", y_val_enc)
-        logger.info(
-            f"Train Data: {X_train.shape}, Train Targets: {y_train_enc.shape}"
-        )
+        logger.info(f"Train Data: {X_train.shape}, Train Targets: {y_train_enc.shape}")
 
         # Hyper Parameter Tuning
         if hypertune:
@@ -234,9 +243,15 @@ class ModelTrainer:
 
         # Save model
         logger.info("Export Trained Model for future inference")
-        model_file_name = f'{self.config.model_name}_htuned' if hypertune else f'{self.config.model_name}'
+        model_file_name = (
+            f"{self.config.model_name}_htuned"
+            if hypertune
+            else f"{self.config.model_name}"
+        )
         model.save(os.path.join(self.config.root_dir, model_file_name))
-        model.save_weights(f'{os.path.join(self.config.root_dir, model_file_name)}.weights.h5') 
+        model.save_weights(
+            f"{os.path.join(self.config.root_dir, model_file_name)}.weights.h5"
+        )
 
     def cnn_model_1(
         self, inp_shape, n_filters, kernel_size, pool_size, dropout_rate, **kwargs
@@ -260,18 +275,69 @@ class ModelTrainer:
             model = cnn_model_1(inp_shape=100, n_filters=32, kernel_size=3, pool_size=2, dropout_rate=0.2)
         """
         model = Sequential()
-        model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=1, padding="same", activation="relu", input_shape=(inp_shape, 1),))
-        model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=2, padding="same", activation="relu", input_shape=(inp_shape, 1),))
-        model.add(Conv1D(n_filters, kernel_size=kernel_size, strides=2, padding="same", activation="relu", input_shape=(inp_shape, 1),))
+        model.add(
+            Conv1D(
+                n_filters,
+                kernel_size=kernel_size,
+                strides=1,
+                padding="same",
+                activation="relu",
+                input_shape=(inp_shape, 1),
+            )
+        )
+        model.add(
+            Conv1D(
+                n_filters,
+                kernel_size=kernel_size,
+                strides=2,
+                padding="same",
+                activation="relu",
+                input_shape=(inp_shape, 1),
+            )
+        )
+        model.add(
+            Conv1D(
+                n_filters,
+                kernel_size=kernel_size,
+                strides=2,
+                padding="same",
+                activation="relu",
+                input_shape=(inp_shape, 1),
+            )
+        )
         model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
         model.add(BatchNormalization())
 
-        model.add(Conv1D(n_filters*2, kernel_size=kernel_size, strides=1, padding="same", activation="relu",))
-        model.add(Conv1D(n_filters*2, kernel_size=kernel_size, strides=2, padding="same", activation="relu",))
+        model.add(
+            Conv1D(
+                n_filters * 2,
+                kernel_size=kernel_size,
+                strides=1,
+                padding="same",
+                activation="relu",
+            )
+        )
+        model.add(
+            Conv1D(
+                n_filters * 2,
+                kernel_size=kernel_size,
+                strides=2,
+                padding="same",
+                activation="relu",
+            )
+        )
         model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
         model.add(BatchNormalization())
 
-        model.add(Conv1D(n_filters*4, kernel_size=kernel_size, strides=2, padding="same", activation="relu",))
+        model.add(
+            Conv1D(
+                n_filters * 4,
+                kernel_size=kernel_size,
+                strides=2,
+                padding="same",
+                activation="relu",
+            )
+        )
         model.add(MaxPooling1D(pool_size=pool_size, strides=1, padding="same"))
         model.add(BatchNormalization())
         model.add(Dropout(dropout_rate))
