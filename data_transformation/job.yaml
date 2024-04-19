@@ -25,9 +25,9 @@ spec:
           containers:
           - image: us-east4-docker.pkg.dev/firm-site-417617/data-transformation/data_trans_img@sha256:71055f70a000c3d6b7ed45a0e265e25eab8e0897cc20e79fad46c117e62829d8
             volumeMounts:
-              - mountPath: /app/metadata/train
+              - mountPath: /app/metadata_train
                 name: train
-              - mountPath: /app/metadata/test
+              - mountPath: /app/metadata_test
                 name: test
               - mountPath: /app/artifacts
                 name: data
@@ -56,4 +56,4 @@ spec:
                     bucketName: artifacts-speech-emotion
           maxRetries: 3
           serviceAccountName: 1016052942653-compute@developer.gserviceaccount.com
-          timeoutSeconds: '600'
+          timeoutSeconds: '1200'
