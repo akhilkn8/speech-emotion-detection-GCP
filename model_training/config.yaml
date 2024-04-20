@@ -6,4 +6,4 @@ model_trainer:
   root_dir: /gcs/artifacts-speech-emotion/model_training
   train_path: /gcs/artifacts-speech-emotion/data_transformation/train_data.parquet
   val_path: /gcs/artifacts-speech-emotion/data_transformation/val_data.parquet
-  model_name: model.joblib
+  model_name: model.keras
