@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import numpy as np
 from utils import save_json
 from joblib import load
+from keras.models import load_model
 from pathlib import Path
 from config_entity import ModelEvaluationConfig
 import matplotlib.pyplot as plt
@@ -36,7 +37,7 @@ class ModelEvaluation:
         prep_data_for_evaluation: Prepares data for model evaluation.
         evaluate_model: Evaluates the model using specified metrics and returns evaluation results.
         plot_confusion_matrix: Plots a confusion matrix for model evaluation.
-        register_and_deploy_model: Registers and deploys the model to a model registry.
+        register_model: Registers the model to a model registry.
         evaluate: Executes the evaluation process including data preparation, model evaluation, and deployment.
     """
 
@@ -45,16 +46,34 @@ class ModelEvaluation:
         Initializes the ModelEvaluation instance with configuration and experiment name.
         """
         self.config = config
-        self.encoder = load(self.config.encoder_path)
-        self.model = load(self.config.model_path)
+        try:
+            self.encoder = load(self.config.encoder_path)
+            logger.info("Encoder has been imported successfully")
+        except Exception as e:
+            logger.error(f"Error loading Encoder: {str(e)}")
+        try:
+            self.model = load_model(self.config.model_path)  # load keras model
+            logger.info(
+                f"Model has been successfully loaded from {self.config.model_path}"
+            )
+        except Exception as e:
+            logger.error(f"Error loading Model: {str(e)}")
+            raise
         self.credentials = self.authenticate()
-        aiplatform.init(
-            experiment="speech-emotion",
-            project="firm-site-417617",
-            location="us-east1",
-            staging_bucket="model-artifact-registry",
-            credentials=self.credentials,
-        )
+        try:
+            aiplatform.init(
+                experiment=os.getenv("AIPLATFORM_EXPERIMENT", "speech-emotion"),
+                project=os.getenv("GOOGLE_CLOUD_PROJECT", "firm-site-417617"),
+                location=os.getenv("AIPLATFORM_LOCATION", "us-east1"),
+                staging_bucket=os.getenv(
+                    "AIPLATFORM_BUCKET", "model-artifact-registry"
+                ),
+                credentials=self.credentials,
+            )
+            logger.info("AI Platform initialized successfully.")
+        except Exception as e:
+            logger.error(f"Failed to initialize AI Platform: {str(e)}")
+            raise
         self.experiment = aiplatform.Experiment(experiment_name=experiment_name)
 
     def prep_data_for_evaluation(self):
@@ -66,9 +85,10 @@ class ModelEvaluation:
         """
         test_data = pd.read_parquet(self.config.test_path)
         X_test = test_data.drop("Emotions", axis=1)
+        if X_test.ndim == 2:
+            X_test = np.expand_dims(X_test, axis=2)
         y_test = test_data["Emotions"]
         y_test_enc = self.encoder.transform(np.array(y_test).reshape(-1, 1)).toarray()
-        X_test = np.expand_dims(X_test, axis=2)
 
         return X_test, y_test_enc
 
@@ -115,34 +135,32 @@ class ModelEvaluation:
         plt.xlabel("Predicted labels")
         plt.ylabel("True labels")
         plt.title("Confusion Matrix")
-        plt.close()
         return plt
 
-    def register_and_deploy_model(self, display_name, version_aliases):
+    def register_model(self, display_name, version_aliases):
         """
-        Registers and deploys the model to a model registry.
+        Registers the model to a model registry.
 
         Args:
             display_name: Display name for the model.
             version_aliases: Aliases for the model version.
         """
         TIMESTAMP = datetime.now().strftime("%Y%m%d%H%M%S")
-        # Register Model in Vertex AI Model Registry
-        model = aiplatform.Model.upload(
-            display_name=display_name,
-            model_id=f"model_{display_name}-{TIMESTAMP}",
-            artifact_uri=self.config.model_path,
-            serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-6:latest",
-            is_default_version=True,
-            version_aliases=version_aliases,
-        )
-        endpoint = model.deploy(
-            machine_type="n1-standard-4",
-            min_replica_count=1,
-            max_replica_count=3,
-            # accelerator_type="NVIDIA_TESLA_T4",
-            accelerator_count=1,
-        )
+        try:
+            # Register Model in Vertex AI Model Registry
+            model = aiplatform.Model.upload(
+                display_name=display_name,
+                model_id=f"model_{display_name}-{TIMESTAMP}",
+                artifact_uri=self.config.model_path,
+                serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-6:latest",
+                is_default_version=True,
+                version_aliases=version_aliases,
+            )
+            logger.info(f"Model registered successfully: {model.display_name}")
+            return model
+        except Exception as e:
+            logger.error(f"Failed to register model: {str(e)}")
+            raise
 
     def evaluate(self):
         """
@@ -154,16 +172,21 @@ class ModelEvaluation:
             y_pred = self.model.predict(X_test)
             metrics, conf_matrix = self.evaluate_model(y_test, y_pred)
             print("Evaluation Metrics:", metrics)
-            self.plot_confusion_matrix(conf_matrix, ["Class Names"])
+            plot = self.plot_confusion_matrix(conf_matrix, ["Class Names"])
 
             run.log_metrics(metrics)
             run.log_params({"model_version": "v1", "model_type": "classification"})
 
             plt_path = "confusion_matrix.png"
-            plt.savefig(plt_path)
+            plot.savefig(plt_path)
+            plot.close()
             run.log_artifact(plt_path)
 
-            model = self.register_and_deploy_model("SER_CNN", ["v1"])
+            model = self.register_model("SER_CNN", ["v1"])
+
+        except Exception as e:
+            logger.error(f"Error during model prediction or evaluation: {str(e)}")
+            raise
 
         finally:
             run.update_state(aiplatform.gapic.Execution.State.COMPLETE)

@@ -34,14 +34,17 @@ class ModelServing:
             filter=f"display_name={self.config.endpoint_id}"
         ):
             endpoint = endpoints[0]  # Use existing endpoint
-            print(f"Using existing endpoint: {endpoint.resource_name}")
+            logger.info(f"Using existing endpoint: {endpoint.resource_name}")
         else:
             # Create a new endpoint if not exist
             endpoint = aiplatform.Endpoint.create(
                 display_name=self.config.endpoint_id,
                 labels={"env": "prod"},
             )
-            print(f"Created new endpoint: {endpoint.resource_name}")
+            logger.info(f"Created new endpoint: {endpoint.resource_name}")
+        logger.info(
+            f"Model successfully deployed to endpoint: {endpoint.resource_name}"
+        )
         return endpoint
 
     def get_model(self):
@@ -53,11 +56,13 @@ class ModelServing:
         """
         try:
             model = aiplatform.Model(model_name=self.config.model_name)
+            logger.info(f"Model retrieved: {model.display_name}")
             return model
         except Exception as e:
             logger.error(
                 "Could not find the model in Model Registry, please register the model first!"
             )
+            raise ValueError("Model not found in the Model Registry.") from e
 
     def deploy_model_to_endpoint(self, endpoint):
         """
@@ -70,6 +75,8 @@ class ModelServing:
             DeployedModel: The deployed model for serving.
         """
         model = self.get_model()
+        if not model:
+            raise ValueError("Model could not be retrieved from the Model Registry.")
         deployed_model = endpoint.deploy(
             model=model,
             deployed_model_display_name=model.display_name,
