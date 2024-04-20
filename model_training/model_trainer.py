@@ -242,7 +242,7 @@ class ModelTrainer:
 
         metrics = model.evaluate(X_val, y_val_enc, return_dict=True)
         aiplatform.log_metrics(metrics)
-
+        aiplatform.end_run()
         # Logging the model
         # mlflow.keras.log_model(model, "model")
         # mlflow.log_params(self.model_params)
