@@ -37,7 +37,7 @@ class ModelEvaluation:
         prep_data_for_evaluation: Prepares data for model evaluation.
         evaluate_model: Evaluates the model using specified metrics and returns evaluation results.
         plot_confusion_matrix: Plots a confusion matrix for model evaluation.
-        register_and_deploy_model: Registers and deploys the model to a model registry.
+        register_model: Registers the model to a model registry.
         evaluate: Executes the evaluation process including data preparation, model evaluation, and deployment.
     """
 
@@ -58,15 +58,22 @@ class ModelEvaluation:
             )
         except Exception as e:
             logger.error(f"Error loading Model: {str(e)}")
-
+            raise
         self.credentials = self.authenticate()
-        aiplatform.init(
-            experiment="speech-emotion",
-            project="firm-site-417617",
-            location="us-east1",
-            staging_bucket="model-artifact-registry",
-            credentials=self.credentials,
-        )
+        try:
+            aiplatform.init(
+                experiment=os.getenv("AIPLATFORM_EXPERIMENT", "speech-emotion"),
+                project=os.getenv("GOOGLE_CLOUD_PROJECT", "firm-site-417617"),
+                location=os.getenv("AIPLATFORM_LOCATION", "us-east1"),
+                staging_bucket=os.getenv(
+                    "AIPLATFORM_BUCKET", "model-artifact-registry"
+                ),
+                credentials=self.credentials,
+            )
+            logger.info("AI Platform initialized successfully.")
+        except Exception as e:
+            logger.error(f"Failed to initialize AI Platform: {str(e)}")
+            raise
         self.experiment = aiplatform.Experiment(experiment_name=experiment_name)
 
     def prep_data_for_evaluation(self):
