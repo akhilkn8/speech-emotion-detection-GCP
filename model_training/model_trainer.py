@@ -10,6 +10,8 @@ import optuna
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import cross_val_score
 import keras
+import vertexai
+from google.oauth2 import service_account
 
 from keras.models import Sequential
 from keras.layers import (
@@ -91,6 +93,9 @@ class ModelTrainer:
         self.model_params = model_params["model_params"]["CNN"]
         self.encoder = OneHotEncoder()
 
+        self.credentials = self.authenticate()
+
+
     def hp_tune_cnn(self, trial, X_train, y_train_enc):
         """
         Performs hyperparameter tuning for the CNN model using Optuna.
@@ -171,6 +176,7 @@ class ModelTrainer:
             project="firm-site-417617",
             location="us-east1",
             staging_bucket="model-artifact-registry",
+            credentials=self.credentials
         )
         aiplatform.start_run(
             run=uuid.uuid4().hex,
@@ -217,7 +223,7 @@ class ModelTrainer:
         model.compile(
             optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"]
         )
-        model.summary(print_fn=logger.info)
+        # model.summary(print_fn=logger.info)
         logger.info("Begin Model Training")
         start = timeit.default_timer()
         rlrp = ReduceLROnPlateau(
@@ -249,9 +255,6 @@ class ModelTrainer:
             else f"{self.config.model_name}"
         )
         model.save(os.path.join(self.config.root_dir, model_file_name))
-        model.save_weights(
-            f"{os.path.join(self.config.root_dir, model_file_name)}.weights.h5"
-        )
 
     def cnn_model_1(
         self, inp_shape, n_filters, kernel_size, pool_size, dropout_rate, **kwargs
@@ -348,3 +351,7 @@ class ModelTrainer:
         model.add(Dense(units=7, activation="softmax"))
 
         return model
+
+    def authenticate(self):
+        credentials = service_account.Credentials.from_service_account_file('gcp_key.json')
+        return credentials 

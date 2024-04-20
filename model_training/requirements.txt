@@ -10,3 +10,5 @@ scikit-learn
 ensure
 python-dotenv
 google-cloud-aiplatform
+google-auth
+vertexai
