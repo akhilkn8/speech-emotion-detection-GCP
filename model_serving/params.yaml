@@ -1,0 +1,13 @@
+### Data Transformation Parameters
+data_transforms:
+  train_params: ['default', 'noise', 'pitch', 'pitch_noise']
+  test_params: ['default']
+
+### Model Parameters
+model_params:
+  CNN:
+    n_filters: 64
+    kernel_size: 3
+    pool_size: 2
+    dropout_rate: 0.2
+    batch_size: 16
