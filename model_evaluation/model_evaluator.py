@@ -24,6 +24,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import google.cloud.aiplatform as aiplatform
 from logger import logger
+import vertexai
+from google.oauth2 import service_account
 
 
 class ModelEvaluation:
@@ -45,11 +47,13 @@ class ModelEvaluation:
         self.config = config
         self.encoder = load(self.config.encoder_path)
         self.model = load(self.config.model_path)
+        self.credentials = self.authenticate()
         aiplatform.init(
             experiment="speech-emotion",
             project="firm-site-417617",
             location="us-east1",
             staging_bucket="model-artifact-registry",
+            credentials=self.credentials,
         )
         self.experiment = aiplatform.Experiment(experiment_name=experiment_name)
 
@@ -136,7 +140,7 @@ class ModelEvaluation:
             machine_type="n1-standard-4",
             min_replica_count=1,
             max_replica_count=3,
-            accelerator_type="NVIDIA_TESLA_T4",
+            # accelerator_type="NVIDIA_TESLA_T4",
             accelerator_count=1,
         )
 
@@ -163,3 +167,9 @@ class ModelEvaluation:
 
         finally:
             run.update_state(aiplatform.gapic.Execution.State.COMPLETE)
+
+    def authenticate(self):
+        credentials = service_account.Credentials.from_service_account_file(
+            "gcp_key.json"
+        )
+        return credentials

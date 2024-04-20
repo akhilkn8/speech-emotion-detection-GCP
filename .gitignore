@@ -10,7 +10,7 @@ __pycache__/
 data_ingestion
 model_training/data
 *.DS_Store
-
+*gcp_key.json
 # Distribution / packaging
 .Python
 build/
