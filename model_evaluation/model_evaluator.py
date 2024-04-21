@@ -147,9 +147,9 @@ class ModelEvaluation:
             # Register Model in Vertex AI Model Registry
             model = aiplatform.Model.upload(
                 display_name=display_name,
-                model_id=f"model.keras",
-                artifact_uri=self.config.root_dir,
-                # serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-6:latest",
+                model_id=f"model_{display_name}_{TIMESTAMP}",
+                artifact_uri=self.config.model_path,
+                serving_container_image_uri="us-east1-docker.pkg.dev/firm-site-417617/model-serving/model_serve_img:staging",
                 is_default_version=True,
                 version_aliases=version_aliases,
             )
@@ -187,7 +187,7 @@ class ModelEvaluation:
             plot.close()
             # aiplatform.log_artifact(plt_path)
 
-            model = self.register_model("SER_CNN", ["v1"])
+            model = self.register_model("cnn", ["v1"])
 
         except Exception as e:
             logger.error(f"Error during model prediction or evaluation: {str(e)}")
