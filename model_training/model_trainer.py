@@ -9,6 +9,7 @@ import pandas as pd
 import optuna
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import cross_val_score
+import tensorflow as tf
 import keras
 import vertexai
 from google.oauth2 import service_account
@@ -95,7 +96,6 @@ class ModelTrainer:
 
         self.credentials = self.authenticate()
 
-
     def hp_tune_cnn(self, trial, X_train, y_train_enc):
         """
         Performs hyperparameter tuning for the CNN model using Optuna.
@@ -176,7 +176,7 @@ class ModelTrainer:
             project="firm-site-417617",
             location="us-east1",
             staging_bucket="model-artifact-registry",
-            credentials=self.credentials
+            credentials=self.credentials,
         )
         aiplatform.start_run(
             run=uuid.uuid4().hex,
@@ -254,7 +254,9 @@ class ModelTrainer:
             if hypertune
             else f"{self.config.model_name}"
         )
-        model.save(os.path.join(self.config.root_dir, model_file_name))
+        model_save_path = os.path.join(self.config.root_dir, "models", model_file_name)
+        tf.saved_model.save(model, model_save_path)
+        # model.save(os.path.join(self.config.root_dir, model_file_name))
 
     def cnn_model_1(
         self, inp_shape, n_filters, kernel_size, pool_size, dropout_rate, **kwargs
@@ -353,5 +355,7 @@ class ModelTrainer:
         return model
 
     def authenticate(self):
-        credentials = service_account.Credentials.from_service_account_file('gcp_key.json')
-        return credentials 
+        credentials = service_account.Credentials.from_service_account_file(
+            "gcp_key.json"
+        )
+        return credentials
