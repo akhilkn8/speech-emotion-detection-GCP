@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.google.cloud.operators.cloud_run import CloudRunExecuteJobOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 
 default_args = {
@@ -47,4 +48,9 @@ with DAG(
         deferrable=False,
     )
 
-    data_generate >> data_transform_train >> data_transform_test
+    trigger_training_dag = TriggerDagRunOperator(
+        task_id="Trigger-Model-Training",
+        trigger_dag_id="model_training_dag",
+    )
+
+    data_generate >> data_transform_train >> data_transform_test >> trigger_training_dag
