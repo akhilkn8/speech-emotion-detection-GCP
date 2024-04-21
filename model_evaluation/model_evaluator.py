@@ -24,6 +24,8 @@ import google.cloud.aiplatform as aiplatform
 from logger import logger
 import vertexai
 from google.oauth2 import service_account
+import tensorflow as tf
+import keras
 
 
 class ModelEvaluation:
@@ -38,7 +40,11 @@ class ModelEvaluation:
         evaluate: Executes the evaluation process including data preparation, model evaluation, and deployment.
     """
 
-    def __init__(self, config: ModelEvaluationConfig, experiment_name: str='speech-emotion-evaluation'):
+    def __init__(
+        self,
+        config: ModelEvaluationConfig,
+        experiment_name: str = "speech-emotion-evaluation",
+    ):
         """
         Initializes the ModelEvaluation instance with configuration and experiment name.
         """
@@ -49,7 +55,11 @@ class ModelEvaluation:
         except Exception as e:
             logger.error(f"Error loading Encoder: {str(e)}")
         try:
-            self.model = load_model(self.config.model_path)  # load keras model
+            # self.model = load_model(self.config.model_path)  # load keras model
+            self.model = tf.saved_model.load(self.config.model_path)  # load keras model
+            # self.model = keras.layers.TFSMLayer(
+            #     self.config.model_path, call_endpoint="serving_default"
+            # )  # load keras model
             logger.info(
                 f"Model has been successfully loaded from {self.config.model_path}"
             )
@@ -172,15 +182,19 @@ class ModelEvaluation:
             y_pred_one_hot = to_categorical(y_pred.argmax(axis=1), num_classes=7)
             y_true_label = np.argmax(y_test, axis=1)
             y_pred_label = np.argmax(y_pred_one_hot, axis=1)
-            logger.info(f'Predictions: {y_pred_one_hot.shape}, Actuals: {y_test.shape}')
-            logger.info(f'Predictions: {y_pred_one_hot[0]}, Actuals: {y_test[0]}')
-            logger.info(f'Test Labels: {y_test_labels}')
-            metrics, conf_matrix = self.evaluate_model(y_test, y_pred_one_hot, y_true_label, y_pred_label)
+            logger.info(f"Predictions: {y_pred_one_hot.shape}, Actuals: {y_test.shape}")
+            logger.info(f"Predictions: {y_pred_one_hot[0]}, Actuals: {y_test[0]}")
+            logger.info(f"Test Labels: {y_test_labels}")
+            metrics, conf_matrix = self.evaluate_model(
+                y_test, y_pred_one_hot, y_true_label, y_pred_label
+            )
             print("Evaluation Metrics:", metrics)
             plot = self.plot_confusion_matrix(conf_matrix, y_test_labels)
 
             aiplatform.log_metrics(metrics)
-            aiplatform.log_params({"model_version": "v1", "model_type": "classification"})
+            aiplatform.log_params(
+                {"model_version": "v1", "model_type": "classification"}
+            )
 
             plt_path = "confusion_matrix.png"
             plot.savefig(plt_path)
