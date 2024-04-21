@@ -40,7 +40,7 @@ class ModelEvaluationPipeline:
             config_manager = ConfigurationManager()
             model_eval_config = config_manager.get_model_evaluation_config()
             model_eval = ModelEvaluation(
-                config=model_eval_config, experiment_name="CNN_Evaluation"
+                config=model_eval_config, experiment_name="speech-emotion-evaluation"
             )
             model_eval.evaluate()
         except Exception as e:

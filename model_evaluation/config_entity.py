@@ -27,7 +27,7 @@ class ModelEvaluationConfig:
     """
 
     root_dir: Path
-    val_path: Path
+    test_path: Path
     model_path: str
     encoder_path: str
     params: dict

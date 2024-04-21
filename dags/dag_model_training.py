@@ -24,13 +24,26 @@ with DAG(
     catchup=False,
 ) as dag_training:
 
-    create_custom_container_training_job = CreateCustomContainerTrainingJobOperator(
+    custom_container_training_job = CreateCustomContainerTrainingJobOperator(
         task_id="speech-model-training",
         staging_bucket=f"gs://artifacts-speech-emotion/model_training",
-        display_name='model_train_img',
-        container_uri='us-east1-docker.pkg.dev/firm-site-417617/model-training/model_train_img@sha256:e01127c1877665887164ca656dc25c11dcddf1ddb2f3026e1b523d01b20fa224',
+        display_name='Model-Training',
+        container_uri='us-east1-docker.pkg.dev/firm-site-417617/model-training/model_train_img:staging',
         # model_serving_container_image_uri=MODEL_SERVING_CONTAINER_URI,
         # run params
         region="us-east1",
         project_id='firm-site-417617',
     )
+
+    custom_container_evaluation_job = CreateCustomContainerTrainingJobOperator(
+        task_id="speech-model-evaluation",
+        staging_bucket=f"gs://artifacts-speech-emotion/model_training",
+        display_name='Model-Evaluation',
+        container_uri='us-east1-docker.pkg.dev/firm-site-417617/model-evaluation/model_eval_img:staging',
+        # model_serving_container_image_uri=MODEL_SERVING_CONTAINER_URI,
+        # run params
+        region="us-east1",
+        project_id='firm-site-417617',
+    )
+
+    custom_container_training_job >> custom_container_evaluation_job

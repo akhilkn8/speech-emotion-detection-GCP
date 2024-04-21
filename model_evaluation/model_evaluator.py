@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import uuid
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -10,15 +11,11 @@ from sklearn.metrics import (
     roc_auc_score,
     matthews_corrcoef,
 )
-from sklearn.model_selection import cross_val_score
 import pandas as pd
-import mlflow
-import mlflow.sklearn
-from urllib.parse import urlparse
 import numpy as np
-from utils import save_json
 from joblib import load
 from keras.models import load_model
+from keras.utils import to_categorical
 from pathlib import Path
 from config_entity import ModelEvaluationConfig
 import matplotlib.pyplot as plt
@@ -41,7 +38,7 @@ class ModelEvaluation:
         evaluate: Executes the evaluation process including data preparation, model evaluation, and deployment.
     """
 
-    def __init__(self, config: ModelEvaluationConfig, experiment_name: str):
+    def __init__(self, config: ModelEvaluationConfig, experiment_name: str='speech-emotion-evaluation'):
         """
         Initializes the ModelEvaluation instance with configuration and experiment name.
         """
@@ -62,7 +59,7 @@ class ModelEvaluation:
         self.credentials = self.authenticate()
         try:
             aiplatform.init(
-                experiment=os.getenv("AIPLATFORM_EXPERIMENT", "speech-emotion"),
+                experiment=os.getenv("AIPLATFORM_EXPERIMENT", experiment_name),
                 project=os.getenv("GOOGLE_CLOUD_PROJECT", "firm-site-417617"),
                 location=os.getenv("AIPLATFORM_LOCATION", "us-east1"),
                 staging_bucket=os.getenv(
@@ -74,7 +71,7 @@ class ModelEvaluation:
         except Exception as e:
             logger.error(f"Failed to initialize AI Platform: {str(e)}")
             raise
-        self.experiment = aiplatform.Experiment(experiment_name=experiment_name)
+        # self.experiment = aiplatform.Experiment(experiment_name=experiment_name)
 
     def prep_data_for_evaluation(self):
         """
@@ -89,10 +86,10 @@ class ModelEvaluation:
             X_test = np.expand_dims(X_test, axis=2)
         y_test = test_data["Emotions"]
         y_test_enc = self.encoder.transform(np.array(y_test).reshape(-1, 1)).toarray()
+        y_test_labels = self.encoder.inverse_transform(y_test_enc)
+        return X_test, y_test_enc, y_test_labels
 
-        return X_test, y_test_enc
-
-    def evaluate_model(self, ytrue, ypred, yproba=None):
+    def evaluate_model(self, ytrue, ypred, y_true_label, y_pred_label, yproba=None):
         """
         Evaluates the model using specified metrics and returns evaluation results.
 
@@ -109,10 +106,10 @@ class ModelEvaluation:
             "precision": precision_score(ytrue, ypred, average="macro"),
             "recall": recall_score(ytrue, ypred, average="macro"),
             "f1_score": f1_score(ytrue, ypred, average="macro"),
-            "mcc": matthews_corrcoef(ytrue, ypred),
+            "mcc": matthews_corrcoef(y_true_label, y_pred_label),
         }
         report = classification_report(ytrue, ypred, output_dict=True)
-        conf_matrix = confusion_matrix(ytrue, ypred)
+        conf_matrix = confusion_matrix(y_true_label, y_pred_label)
         return metrics, conf_matrix
 
     def plot_confusion_matrix(self, conf_matrix, class_names):
@@ -150,9 +147,9 @@ class ModelEvaluation:
             # Register Model in Vertex AI Model Registry
             model = aiplatform.Model.upload(
                 display_name=display_name,
-                model_id=f"model_{display_name}-{TIMESTAMP}",
-                artifact_uri=self.config.model_path,
-                serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-6:latest",
+                model_id=f"model.keras",
+                artifact_uri=self.config.root_dir,
+                # serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-6:latest",
                 is_default_version=True,
                 version_aliases=version_aliases,
             )
@@ -166,21 +163,29 @@ class ModelEvaluation:
         """
         Executes the evaluation process including data preparation, model evaluation, and deployment.
         """
-        run = self.experiment.start_run(run_name="evaluation_run")
+        aiplatform.start_run(
+            run=uuid.uuid4().hex,
+        )
         try:
-            X_test, y_test = self.prep_data_for_evaluation()
+            X_test, y_test, y_test_labels = self.prep_data_for_evaluation()
             y_pred = self.model.predict(X_test)
-            metrics, conf_matrix = self.evaluate_model(y_test, y_pred)
+            y_pred_one_hot = to_categorical(y_pred.argmax(axis=1), num_classes=7)
+            y_true_label = np.argmax(y_test, axis=1)
+            y_pred_label = np.argmax(y_pred_one_hot, axis=1)
+            logger.info(f'Predictions: {y_pred_one_hot.shape}, Actuals: {y_test.shape}')
+            logger.info(f'Predictions: {y_pred_one_hot[0]}, Actuals: {y_test[0]}')
+            logger.info(f'Test Labels: {y_test_labels}')
+            metrics, conf_matrix = self.evaluate_model(y_test, y_pred_one_hot, y_true_label, y_pred_label)
             print("Evaluation Metrics:", metrics)
-            plot = self.plot_confusion_matrix(conf_matrix, ["Class Names"])
+            plot = self.plot_confusion_matrix(conf_matrix, y_test_labels)
 
-            run.log_metrics(metrics)
-            run.log_params({"model_version": "v1", "model_type": "classification"})
+            aiplatform.log_metrics(metrics)
+            aiplatform.log_params({"model_version": "v1", "model_type": "classification"})
 
             plt_path = "confusion_matrix.png"
             plot.savefig(plt_path)
             plot.close()
-            run.log_artifact(plt_path)
+            # aiplatform.log_artifact(plt_path)
 
             model = self.register_model("SER_CNN", ["v1"])
 
@@ -189,7 +194,7 @@ class ModelEvaluation:
             raise
 
         finally:
-            run.update_state(aiplatform.gapic.Execution.State.COMPLETE)
+            aiplatform.end_run()
 
     def authenticate(self):
         credentials = service_account.Credentials.from_service_account_file(
