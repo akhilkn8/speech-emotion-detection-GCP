@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import os
 from typing import Optional
 import google.cloud.aiplatform as aiplatform
 from airflow import DAG
@@ -7,7 +8,10 @@ from airflow.providers.google.cloud.operators.vertex_ai.custom_job import (
     CreateCustomContainerTrainingJobOperator,
     DeleteCustomTrainingJobOperator,
 )
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 default_args = {
     "owner": "airflow",
@@ -26,24 +30,24 @@ with DAG(
 
     custom_container_training_job = CreateCustomContainerTrainingJobOperator(
         task_id="speech-model-training",
-        staging_bucket=f"gs://artifacts-speech-emotion/model_training",
+        staging_bucket=os.getenv('GCP_STAGING_BUCKET'),
         display_name='Model-Training',
-        container_uri='us-east1-docker.pkg.dev/firm-site-417617/model-training/model_train_img:staging',
+        container_uri=os.getenv('VERTEXAI_TRAIN_CONTAINER_URI'),
         # model_serving_container_image_uri=MODEL_SERVING_CONTAINER_URI,
         # run params
-        region="us-east1",
-        project_id='firm-site-417617',
+        region=os.getenv('VERTEXAI_JOB_LOCATION'),
+        project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
     )
 
     custom_container_evaluation_job = CreateCustomContainerTrainingJobOperator(
         task_id="speech-model-evaluation",
-        staging_bucket=f"gs://artifacts-speech-emotion/model_training",
+        staging_bucket=os.getenv('GCP_STAGING_BUCKET'),
         display_name='Model-Evaluation',
-        container_uri='us-east1-docker.pkg.dev/firm-site-417617/model-evaluation/model_eval_img:staging',
+        container_uri=os.getenv('VERTEXAI_EVAL_CONTAINER_URI'),
         # model_serving_container_image_uri=MODEL_SERVING_CONTAINER_URI,
         # run params
-        region="us-east1",
-        project_id='firm-site-417617',
+        region=os.getenv('VERTEXAI_JOB_LOCATION'),
+        project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
     )
 
     custom_container_training_job >> custom_container_evaluation_job
