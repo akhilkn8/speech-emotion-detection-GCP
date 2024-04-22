@@ -26,6 +26,10 @@ import vertexai
 from google.oauth2 import service_account
 import tensorflow as tf
 import keras
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 class ModelEvaluation:
@@ -69,12 +73,10 @@ class ModelEvaluation:
         self.credentials = self.authenticate()
         try:
             aiplatform.init(
-                experiment=os.getenv("AIPLATFORM_EXPERIMENT", experiment_name),
-                project=os.getenv("GOOGLE_CLOUD_PROJECT", "firm-site-417617"),
-                location=os.getenv("AIPLATFORM_LOCATION", "us-east1"),
-                staging_bucket=os.getenv(
-                    "AIPLATFORM_BUCKET", "model-artifact-registry"
-                ),
+                experiment=os.getenv("AIPLATFORM_EXPERIMENT"),
+                project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+                location=os.getenv("AIPLATFORM_LOCATION"),
+                staging_bucket=os.getenv("AIPLATFORM_BUCKET"),
                 credentials=self.credentials,
             )
             logger.info("AI Platform initialized successfully.")
@@ -159,7 +161,7 @@ class ModelEvaluation:
                 display_name=display_name,
                 model_id=f"model_{display_name}_{TIMESTAMP}",
                 artifact_uri=self.config.model_path,
-                serving_container_image_uri="us-east1-docker.pkg.dev/firm-site-417617/model-serving/model_serve_img:staging",
+                serving_container_image_uri=os.getenv('SERVING_CONTAINER_URI'),
                 is_default_version=True,
                 version_aliases=version_aliases,
             )
@@ -178,7 +180,8 @@ class ModelEvaluation:
         )
         try:
             X_test, y_test, y_test_labels = self.prep_data_for_evaluation()
-            y_pred = self.model.predict(X_test)
+            y_pred = self.model.serve(X_test).numpy()
+            logger.info(f'ypred: {y_pred}')
             y_pred_one_hot = to_categorical(y_pred.argmax(axis=1), num_classes=7)
             y_true_label = np.argmax(y_test, axis=1)
             y_pred_label = np.argmax(y_pred_one_hot, axis=1)
@@ -201,7 +204,7 @@ class ModelEvaluation:
             plot.close()
             # aiplatform.log_artifact(plt_path)
 
-            model = self.register_model("cnn", ["v1"])
+            model = self.register_model("cnn-latest", ["v1"])
 
         except Exception as e:
             logger.error(f"Error during model prediction or evaluation: {str(e)}")
@@ -211,7 +214,5 @@ class ModelEvaluation:
             aiplatform.end_run()
 
     def authenticate(self):
-        credentials = service_account.Credentials.from_service_account_file(
-            "gcp_key.json"
-        )
+        credentials = service_account.Credentials.from_service_account_file(os.getenv('GCP_CREDENTIAL_PATH'))
         return credentials
