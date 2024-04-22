@@ -1,0 +1,12 @@
+python-box
+pyYAML
+pyarrow
+numpy
+pandas
+joblib
+scikit-learn
+ensure
+python-dotenv
+google-cloud-aiplatform
+google-auth
+vertexai
