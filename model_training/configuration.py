@@ -72,7 +72,7 @@ class ConfigurationManager:
             None.
         """
 
-        RUNTIME = os.environ.get('RUNTIME', 'GCP')
+        RUNTIME = os.environ.get('RUNTIME')
         if RUNTIME == 'local':
             config_filepath = Path(f'./config_local.yaml')
 
@@ -105,13 +105,13 @@ class ConfigurationManager:
         params = self.params.model_params
         label = self.schema.TARGET_COLUMN
 
-        create_directories([config.root_dir])
+        create_directories([config.root_dir, config.model_path])
 
         model_trainer_config = ModelTrainerConfig(
             root_dir=config.root_dir,
             train_path=config.train_path,
             val_path=config.val_path,
-            model_name=config.model_name,
+            model_path=config.model_path,
             params=params,
             target_col=label,
         )
