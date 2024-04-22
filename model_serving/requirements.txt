@@ -1,9 +1,5 @@
-tensorflow
-keras
-optuna
 python-box
 pyYAML
-pyarrow
 numpy
 pandas
 joblib
@@ -14,3 +10,4 @@ google-cloud-aiplatform
 google-auth
 vertexai
 streamlit
+librosa
