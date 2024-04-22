@@ -1,8 +1,12 @@
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
 from airflow.providers.google.cloud.operators.cloud_run import CloudRunExecuteJobOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 default_args = {
     "owner": "airflow",
@@ -21,18 +25,18 @@ with DAG(
 
     data_generate = CloudRunExecuteJobOperator(
         task_id='Data-Generation',
-        project_id='firm-site-417617',
-        region='us-east4',
-        job_name='data-gen-img',
+        project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
+        region=os.getenv('AIPLATFORM_LOCATION'),
+        job_name=os.getenv('DATA_GEN_JOB_NAME'),
         dag=dag_generation,
         deferrable=False,
     )
 
     data_transform_train = CloudRunExecuteJobOperator(
         task_id='Data-Transformation-Train',
-        project_id='firm-site-417617',
-        region='us-east4',
-        job_name='data-trans-img',
+        project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
+        region=os.getenv('CLOUD_RUN_LOCATION'),
+        job_name=os.getenv('DATA_TRANS_JOB_NAME'),
         overrides={'container_overrides': [{'env':[{'name':'STAGE', 'value':'train'}]}]},
         dag=dag_generation,
         deferrable=False,
@@ -40,9 +44,9 @@ with DAG(
 
     data_transform_test = CloudRunExecuteJobOperator(
         task_id='Data-Transformation-Test',
-        project_id='firm-site-417617',
-        region='us-east4',
-        job_name='data-trans-img',
+        project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
+        region=os.getenv('CLOUD_RUN_LOCATION'),
+        job_name=os.getenv('DATA_TRANS_JOB_NAME'),
         overrides={'container_overrides': [{'env':[{'name':'STAGE', 'value':'test'}]}]},
         dag=dag_generation,
         deferrable=False,

@@ -109,7 +109,7 @@ class ModelTrainer:
             float: The mean accuracy score obtained during hyperparameter tuning.
         """
         # Define the hyperparameters to be tuned
-        n_filters = [int(trial.suggest_categorical("num_filters", [32, 64, 128, 256]))]
+        n_filters = [int(trial.suggest_categorical("num_filters", [16, 32, 64, 128]))]
         kernel_size = trial.suggest_int("kernel_size", 3, 10)
         pool_size = trial.suggest_int("pool_size", 2, 5)
         dropout_rate = trial.suggest_discrete_uniform("drop_out", 0.05, 0.5, 0.05)
@@ -249,14 +249,15 @@ class ModelTrainer:
 
         # Save model
         logger.info("Export Trained Model for future inference")
-        model_file_name = (
-            f"{self.config.model_name}_htuned"
-            if hypertune
-            else f"{self.config.model_name}"
-        )
-        model_save_path = os.path.join(self.config.root_dir, "models", model_file_name)
-        tf.saved_model.save(model, model_save_path)
-        # model.save(os.path.join(self.config.root_dir, model_file_name))
+        # model_file_name = (
+        #     f"{self.config.model_name}_htuned"
+        #     if hypertune
+        #     else f"{self.config.model_name}"
+        # )
+        # model_save_path = os.path.join(self.config.root_dir, model_file_name)
+        # tf.saved_model.save(model, model_save_path)
+        # model.save(model_save_path)
+        model.export(self.config.model_path)
 
     def cnn_model_1(
         self, inp_shape, n_filters, kernel_size, pool_size, dropout_rate, **kwargs

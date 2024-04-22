@@ -1,5 +1,5 @@
 # FROM gcr.io/deeplearning-platform-release/tf2-gpu.2-8
-FROM python:3.12.3-slim-bullseye
+FROM python:3.10.3-slim-bullseye
 
 WORKDIR /app
 

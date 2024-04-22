@@ -1,7 +1,11 @@
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
 from airflow.providers.google.cloud.operators.cloud_run import CloudRunExecuteJobOperator
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 default_args = {
     "owner": "airflow",
@@ -20,9 +24,9 @@ with DAG(
 
     execute1 = CloudRunExecuteJobOperator(
         task_id='Data-Generation',
-        project_id='firm-site-417617',
-        region='us-east4',
-        job_name='data-gen-img',
+        project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
+        region=os.getenv('CLOUD_RUN_LOCATION'),
+        job_name=os.getenv('DATA_GEN_JOB_NAME'),
         dag=dag_generation,
         deferrable=False,
     )

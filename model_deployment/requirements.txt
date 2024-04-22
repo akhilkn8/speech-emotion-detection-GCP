@@ -1,5 +1,6 @@
 python-box
 pyYAML
+pyarrow
 numpy
 pandas
 joblib
@@ -9,5 +10,3 @@ python-dotenv
 google-cloud-aiplatform
 google-auth
 vertexai
-streamlit
-librosa

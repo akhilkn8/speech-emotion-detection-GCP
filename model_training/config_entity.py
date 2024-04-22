@@ -29,6 +29,6 @@ class ModelTrainerConfig:
     root_dir: Path
     train_path: Path
     val_path: Path
-    model_name: str
+    model_path: str
     params: dict
     target_col: str
