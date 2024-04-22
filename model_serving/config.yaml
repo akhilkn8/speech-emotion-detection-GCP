@@ -1,13 +1,8 @@
 ### ================================================================
-###                 MODEL SERVING CONFIGURATION
+###             MODEL EVALUATION CONFIGURATION
 ### ================================================================
 
-model_serve:
-  model_name: model-name
-  project_id: firm-site-417617
-  location: us-east1
-  endpoint_id: endpoint-id
-  machine_type: "n1-standard-4"
-  min_replica_count: 1
-  max_replica_count: 2
-  traffic_percentage: 100
+model_server:
+  scaler_path: /gcs/data_transformation/std_scaler.bin
+  encoder_path: /gcs/artifacts-speech-emotion/model_training/encoder.bin
+  
