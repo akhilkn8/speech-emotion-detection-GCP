@@ -3,6 +3,7 @@ import warnings
 import yaml
 import timeit
 import multiprocessing as mp
+from multiprocessing import get_context
 from itertools import repeat
 from joblib import Parallel, delayed, dump, load
 
@@ -450,14 +451,10 @@ class DataTransformation:
             None.
         """
 
-        if self.stage == "train":
-            metadata_dir = os.path.join(
-                self.config.metadata_train_path, f"metadata_{self.stage}.csv"
-            )
-        elif self.stage == "test":
-            metadata_dir = os.path.join(
-                self.config.metadata_test_path, f"metadata_{self.stage}.csv"
-            )
+        if self.stage == 'train':
+            metadata_dir = os.path.join(self.config.metadata_train_path)
+        elif self.stage == 'test':
+            metadata_dir = os.path.join(self.config.metadata_test_path)
 
         data = pd.read_csv(metadata_dir)
         data = data.dropna()
@@ -469,7 +466,7 @@ class DataTransformation:
         logger.info("Multiprocessing started!")
         logger.info(f"{len(paths)}")
         # Perform feature extraction in parallel using multiprocessing
-        with mp.Pool() as pool:
+        with get_context("spawn").Pool() as pool:
             results = pool.starmap(self.process_feature, zip(paths, emotions))
 
         logger.info(f"Pre-preprocessing done for {len(results)} files")

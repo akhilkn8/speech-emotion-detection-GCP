@@ -44,8 +44,8 @@ class DataTransformationTrainingPipeline:
             )
             data_transformation.feature_engineering()
             data_transformation.scale_data()
-            if self.stage == "test":
-                data_transformation.evaluate_model_performance()
+            # if self.stage == "test":
+            #     data_transformation.evaluate_model_performance()
         except Exception as e:
             raise e
 
