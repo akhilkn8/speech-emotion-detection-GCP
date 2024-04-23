@@ -4,5 +4,5 @@
 
 model_server:
   scaler_path: /gcs/data_transformation/std_scaler.bin
-  encoder_path: /gcs/artifacts-speech-emotion/model_training/encoder.bin
+  encoder_path: /gcs/model_training/encoder.bin
   

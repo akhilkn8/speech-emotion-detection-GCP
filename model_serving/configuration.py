@@ -89,9 +89,9 @@ class ConfigurationManager:
             None.
         """
 
-        config = self.config.model_trainer
+        config = self.config.model_server
 
-        create_directories([config.root_dir])
+        # create_directories([config.root_dir])
 
         model_serving_config = ModelServingConfig(
             scaler_path=config.scaler_path,
