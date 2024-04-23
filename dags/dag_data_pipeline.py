@@ -3,6 +3,9 @@ import os
 from airflow import DAG
 from airflow.providers.google.cloud.operators.cloud_run import CloudRunExecuteJobOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.providers.google.cloud.operators.vertex_ai.custom_job import (
+    CreateCustomContainerTrainingJobOperator
+)
 from dotenv import load_dotenv
 
 
@@ -26,13 +29,13 @@ with DAG(
     data_generate = CloudRunExecuteJobOperator(
         task_id='Data-Generation',
         project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
-        region=os.getenv('AIPLATFORM_LOCATION'),
+        region=os.getenv('CLOUD_RUN_LOCATION'),
         job_name=os.getenv('DATA_GEN_JOB_NAME'),
         dag=dag_generation,
         deferrable=False,
     )
 
-    data_transform_train = CloudRunExecuteJobOperator(
+    transformation_train_job = CloudRunExecuteJobOperator(
         task_id='Data-Transformation-Train',
         project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
         region=os.getenv('CLOUD_RUN_LOCATION'),
@@ -42,7 +45,18 @@ with DAG(
         deferrable=False,
     )
 
-    data_transform_test = CloudRunExecuteJobOperator(
+    # transformation_train_job = CreateCustomContainerTrainingJobOperator(
+    #     task_id="Data-Transformation-Train",
+    #     staging_bucket=os.getenv('GCP_TRANS_STAGING_BUCKET'),
+    #     display_name='Data-Transformation-Train',
+    #     container_uri=os.getenv('VERTEXAI_TRANSFORM_CONTAINER_URI'),
+    #     environment_variables={'STAGE':'train'},
+    #     region=os.getenv('VERTEXAI_JOB_LOCATION'),
+    #     project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
+    #     machine_type=os.getenv('VERTEXAI_MACHINE_TYPE')
+    # )
+
+    transformation_test_job = CloudRunExecuteJobOperator(
         task_id='Data-Transformation-Test',
         project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
         region=os.getenv('CLOUD_RUN_LOCATION'),
@@ -52,9 +66,20 @@ with DAG(
         deferrable=False,
     )
 
+    # transformation_test_job = CreateCustomContainerTrainingJobOperator(
+    #     task_id="Data-Transformation-Test",
+    #     staging_bucket=os.getenv('GCP_TRANS_STAGING_BUCKET'),
+    #     display_name='Data-Transformation-Test',
+    #     container_uri=os.getenv('VERTEXAI_TRANSFORM_CONTAINER_URI'),
+    #     environment_variables={'STAGE':'test'},
+    #     region=os.getenv('VERTEXAI_JOB_LOCATION'),
+    #     project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
+    #     machine_type=os.getenv('VERTEXAI_MACHINE_TYPE')
+    # )
+
     trigger_training_dag = TriggerDagRunOperator(
         task_id="Trigger-Model-Training",
         trigger_dag_id="model_training_dag",
     )
 
-    data_generate >> data_transform_train >> data_transform_test >> trigger_training_dag
+    data_generate >> transformation_train_job >> transformation_test_job >> trigger_training_dag

@@ -25,7 +25,7 @@ from keras.layers import (
 )
 
 # from keras.utils import to_categorical
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
 from joblib import dump
 import google.cloud.aiplatform as aiplatform
 
@@ -229,14 +229,18 @@ class ModelTrainer:
         rlrp = ReduceLROnPlateau(
             monitor="val_loss", factor=0.4, verbose=1, patience=2, min_lr=0.000001
         )
+        early_stop_cb = EarlyStopping(monitor='val_loss', 
+                                    verbose=1,
+                                    min_delta=0.001,
+                                    patience=4)
         history = model.fit(
-            X_train,
-            y_train_enc,
-            batch_size=16,
-            epochs=epochs,
-            validation_data=(X_val, y_val_enc),
-            callbacks=[rlrp, LoggingCallback(logger.info)],
-        )
+                            X_train,
+                            y_train_enc,
+                            batch_size=16,
+                            epochs=epochs,
+                            validation_data=(X_val, y_val_enc),
+                            callbacks=[rlrp, early_stop_cb, LoggingCallback(logger.info)],
+                            )
         elapsed_time = timeit.default_timer() - start
         logger.info(f"Training Duration: {elapsed_time:.2f} secs")
 

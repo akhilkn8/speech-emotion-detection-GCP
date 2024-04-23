@@ -95,7 +95,7 @@ class ConfigurationManager:
 
         config = self.config.data_transformation
 
-        create_directories([config.root_dir, config.metadata_path, config.metadata_train_path, config.metadata_test_path])
+        # create_directories([config.root_dir,])
 
         data_transformation_config = DataTransformationConfig(
             root_dir=config.root_dir,

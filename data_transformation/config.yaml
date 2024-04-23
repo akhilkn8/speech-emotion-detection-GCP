@@ -2,6 +2,16 @@
 ###              DATA TRANSFORMATION CONFIGURATION
 ### ================================================================
 
+# data_transformation:
+#   root_dir: /gcs/artifacts-speech-emotion
+#   metadata_path: /gcs/metadata_store_bucket
+#   metadata_train_path: /gcs/train-bucket-model/metadata_train.csv
+#   metadata_test_path: /gcs/test-bucket-model/metadata_test.csv
+#   output_path: /gcs/artifacts-speech-emotion/data_transformation
+#   train_path: /gcs/artifacts-speech-emotion/data_transformation/train_data.parquet
+#   val_path: /gcs/artifacts-speech-emotion/data_transformation/val_data.parquet
+#   test_path: /gcs/artifacts-speech-emotion/data_transformation/test_data.parquet
+
 data_transformation:
   root_dir: ./artifacts
   metadata_path: ./metadata
