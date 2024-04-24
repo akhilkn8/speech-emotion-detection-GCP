@@ -740,3 +740,24 @@ class DataTransformation:
 
         # Further actions based on drift results
         # E.g., retrain model, alert stakeholders, etc.
+
+
+
+    """def evaluate_model_performance(self):
+
+        train_data = pd.read_parquet(self.config.train_path, engine="pyarrow")
+        test_data = pd.read_parquet(self.config.test_path, engine="pyarrow")
+        features = test_data.columns
+        # Detect drift using both K-S test and PSI
+        ks_results = self.drift_detector.calculate_ks_statistic(
+            train_data, test_data, features
+        )
+        psi_results = self.drift_detector.detect_data_drift(
+            train_data, test_data, features
+        )
+
+        logger.info("K-S Test Results:", ks_results)
+        logger.info("PSI Results:", psi_results)
+
+        # Further actions based on drift results
+        # E.g., retrain model, alert stakeholders, etc."""
