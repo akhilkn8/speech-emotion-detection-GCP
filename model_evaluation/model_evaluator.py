@@ -7,6 +7,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     confusion_matrix,
+    ConfusionMatrixDisplay,
     classification_report,
     roc_auc_score,
     matthews_corrcoef,
@@ -83,6 +84,7 @@ class ModelEvaluation:
         except Exception as e:
             logger.error(f"Failed to initialize AI Platform: {str(e)}")
             raise
+        self.timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         # self.experiment = aiplatform.Experiment(experiment_name=experiment_name)
 
     def prep_data_for_evaluation(self):
@@ -124,7 +126,7 @@ class ModelEvaluation:
         conf_matrix = confusion_matrix(y_true_label, y_pred_label)
         return metrics, conf_matrix
 
-    def plot_confusion_matrix(self, conf_matrix, class_names):
+    def plot_confusion_matrix(self, conf_matrix, class_names=None):
         """
         Plots a confusion matrix for model evaluation.
 
@@ -132,19 +134,21 @@ class ModelEvaluation:
             conf_matrix: Confusion matrix data.
             class_names: Names of classes for the confusion matrix.
         """
-        plt.figure(figsize=(10, 7))
-        sns.heatmap(
-            conf_matrix,
-            annot=True,
-            fmt="g",
-            cmap="Blues",
-            xticklabels=class_names,
-            yticklabels=class_names,
-        )
+        plot = plt.figure(figsize=(20, 20))
+        # sns.heatmap(
+        #     conf_matrix,
+        #     annot=True,
+        #     fmt="g",
+        #     cmap="Blues",
+        #     xticklabels=self.encoder.categories_,
+        #     yticklabels=self.encoder.categories_,
+        # )
+        cmd = ConfusionMatrixDisplay(conf_matrix, display_labels=self.encoder.categories_[0])
+        plot = cmd.plot()
         plt.xlabel("Predicted labels")
         plt.ylabel("True labels")
         plt.title("Confusion Matrix")
-        return plt
+        return plot
 
     def register_model(self, display_name, version_aliases):
         """
@@ -154,12 +158,12 @@ class ModelEvaluation:
             display_name: Display name for the model.
             version_aliases: Aliases for the model version.
         """
-        TIMESTAMP = datetime.now().strftime("%Y%m%d%H%M%S")
+        
         try:
             # Register Model in Vertex AI Model Registry
             model = aiplatform.Model.upload(
                 display_name=display_name,
-                model_id=f"model_{display_name}_{TIMESTAMP}",
+                model_id=f"model_{display_name}_{self.timestamp}",
                 artifact_uri=self.config.model_path,
                 serving_container_image_uri=os.getenv('SERVING_CONTAINER_URI'),
                 is_default_version=True,
@@ -184,24 +188,33 @@ class ModelEvaluation:
             logger.info(f'ypred: {y_pred}')
             y_pred_one_hot = to_categorical(y_pred.argmax(axis=1), num_classes=7)
             y_true_label = np.argmax(y_test, axis=1)
-            y_pred_label = np.argmax(y_pred_one_hot, axis=1)
+            y_pred_label = self.encoder.inverse_transform(y_pred_one_hot)
+            # y_pred_label = np.argmax(y_pred_one_hot, axis=1)
             logger.info(f"Predictions: {y_pred_one_hot.shape}, Actuals: {y_test.shape}")
             logger.info(f"Predictions: {y_pred_one_hot[0]}, Actuals: {y_test[0]}")
-            logger.info(f"Test Labels: {y_test_labels}")
+            logger.info(f"y_test_labels: {y_test_labels}")
+        
+            y_test_labels = [x for x in y_test_labels]
+            y_pred_label = [x for x in y_pred_label]
+            logger.info(f"y_true_label: {y_true_label}")
+            logger.info(f"y_pred_label: {y_pred_label}")
+            
             metrics, conf_matrix = self.evaluate_model(
-                y_test, y_pred_one_hot, y_true_label, y_pred_label
+                y_test, y_pred_one_hot, y_test_labels, y_pred_label
             )
+
             print("Evaluation Metrics:", metrics)
-            plot = self.plot_confusion_matrix(conf_matrix, y_test_labels)
+            plot = self.plot_confusion_matrix(conf_matrix)
 
             aiplatform.log_metrics(metrics)
             aiplatform.log_params(
                 {"model_version": "v1", "model_type": "classification"}
             )
 
-            plt_path = "confusion_matrix.png"
-            plot.savefig(plt_path)
-            plot.close()
+            plt_path = os.path.join(self.config.confusion_matrix_path, f"confusion_matrix_{self.timestamp}.png")
+            plot.figure_.savefig(plt_path)
+            # plot.close()
+            logger.info(f'Saved Confusion Matrix: {plt_path}')
             # aiplatform.log_artifact(plt_path)
 
             model = self.register_model("cnn-latest", ["v1"])
