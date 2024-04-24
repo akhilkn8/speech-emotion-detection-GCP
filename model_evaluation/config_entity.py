@@ -30,5 +30,6 @@ class ModelEvaluationConfig:
     test_path: Path
     model_path: str
     encoder_path: str
+    confusion_matrix_path:str
     params: dict
     target_col: str

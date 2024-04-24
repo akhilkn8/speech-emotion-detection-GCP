@@ -100,13 +100,14 @@ class ConfigurationManager:
 
         create_directories([config.root_dir])
 
-        model_trainer_config = ModelEvaluationConfig(
+        model_eval_config = ModelEvaluationConfig(
             root_dir=config.root_dir,
             test_path=config.test_path,
             model_path=config.model_path,
             encoder_path=config.encoder_path,
+            confusion_matrix_path=config.confusion_matrix_path,
             params=params,
             target_col=label,
         )
 
-        return model_trainer_config
+        return model_eval_config
