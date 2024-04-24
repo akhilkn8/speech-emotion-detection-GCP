@@ -30,7 +30,7 @@ git clone git@github.com:akhilkn8/speech-emotion-detection-GCP.git
 
 Each folder is equipped with a Dockerfile and respective scripts that define how to build and deploy the services on GCP. Ensure you have the correct permissions and environment variables set before running these scripts.
 
-### Deployment
+### Instructions
 Follow these steps to deploy any component:
 - Start Docker deamon in your local system
 - Authenticate to Google Cloud using SDK or commands
@@ -54,7 +54,72 @@ gcloud beta run jobs execute <image-name>
 
 - Ensure your Cloud Composer environment is properly configured to trigger the appropriate Cloud Run or Vertex AI job.
 
+### Artifacts Registry
+
+We store our docker containers in Artifacts Registry, in the following repositories 
+
+![ArtifactsRepo](assets/image.png)
+
+### Cloud Composer
+
+Our entire MLOps orchestration is done using Cloud Composer, wherein we write various custom DAGs to trigger Cloud Run jobs (`CloudRunExecuteJobOperator`) or Vertex AI jobs (`CreateCustomContainerTrainingJobOperator`)
+
+![CloudComposer](assets/image-4.png)
+
+### Training Pipeline
+
+We train our custom ML Models using Vertex AI Training Pipelines
+
+![vertexaiTraining](assets/image-2.png)
+
+These are essentially custom jobs triggered through our Cloud Composer environment
+
+![vertexaiTrainJobs](assets/image-3.png)
+
+### Model Registry
+
+We register our models into Vertex AI Model Registry and manage the state of the models as:
+![ModelRegistry](assets/image-9.png)
+
+### Experiment Tracking
+
+We track our experiments using Vertex AI Experiment tracking for:
+
+1. Training Pipeline
+![TrainTracking](assets/image-5.png)
+
+2. Evaluation Pipeline
+![EvalTracking](assets/image-6.png)
+
+### Metadata Management
+We also have a Vertex AI Metadata store to manage the model metadata as:
+![MLMD](assets/image-7.png)
+
+### Model Deployment
+
+We deploy our models to our endpoint with provision of using deployment techniques like Canary Deployment:
+![Deployment](assets/image-10.png)
+
+### Model Serving
+
+We serve our models using Cloud Run Services and Streamlit Frontend. 
+
+![Streamlit](assets/image-13.png)
+
+The deployment service health can be easily monitored as:
+![ModelServe](assets/image-11.png)
+![ModelServe2](assets/image-12.png)
+
+
+### Cluster Health Monitoring
+
+We deploy our services through Cloud Compose running on Kubernetes backend. We can monitor the cluster health using managed services like Prometheus
+
+![ClusterHealth](assets/image-1.png)
+
+
 This setup ensures a scalable and manageable deployment of machine learning models, leveraging GCP's robust cloud infrastructure.
+
 
 ## Contributing
 Contributions to this project are welcome. Please refer to the contribution guidelines before making a pull request. Ensure that any changes are well-documented and include updates to this README if necessary.
