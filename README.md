@@ -2,7 +2,7 @@
 
 This repository contains all components necessary to deploy a speech emotion recognition system to Google Cloud Platform (GCP) services. This system is designed to handle multiple tasks including data generation, data transformation, model training, model evaluation, model deployment, and serving the trained model. The workflows are orchestrated using Cloud Composer with detailed operations defined in respective Docker configurations and triggered via Cloud Run and Vertex AI.
 
-This work is in continuation of the work done in [this](https://github.com/debanjansaha-git/speech-emotion-recognition) GitHub repository
+This work extends the prior development found at [this GitHub repository](https://github.com/debanjansaha-git/speech-emotion-recognition)
 
 ## Repository Structure
 
@@ -23,8 +23,14 @@ Utility Scripts
 To get started with this project, clone the repository to your local machine or server environment:
 
 ```bash
-git clone git@github.com:akhilkn8/speech-emotion-detection-GCP.git
+git clone https://github.com/akhilkn8/speech-emotion-detection-GCP.git
 ```
+
+## System Design
+- **Artifacts Registry**: Hosts Docker containers for all operations.
+- **Cloud Composer**: Orchestrates workflows across GCP services using custom DAGs.
+- **Vertex AI**: Manages custom ML model training, evaluation, and deployment pipelines.
+- **Model Registry**: Stores trained models, facilitating version control and deployment.
 
 ## Usage
 
@@ -45,6 +51,10 @@ gcloud artifacts repositories create model-training --repository-format=docker \
 --location=us-east1 --description="Docker repository for model training"
 ```
 - Use the respective gcr_*.sh script to build and push the Docker image.
+```bash
+./gcr_data_gen.sh
+./gcr_model_train.sh
+```
 - Or you can also directly trigger Cloud Run jobs as:
 ```bash
 gcloud run jobs describe <image-name> --format export > job.yaml
@@ -53,6 +63,8 @@ gcloud beta run jobs execute <image-name>
 ```
 
 - Ensure your Cloud Composer environment is properly configured to trigger the appropriate Cloud Run or Vertex AI job.
+
+## Orchestration
 
 ### Artifacts Registry
 
@@ -118,7 +130,6 @@ We deploy our services through Cloud Compose running on Kubernetes backend. We c
 ![ClusterHealth](assets/image-1.png)
 
 
-This setup ensures a scalable and manageable deployment of machine learning models, leveraging GCP's robust cloud infrastructure.
 
 
 ## Contributing
@@ -128,7 +139,7 @@ For more detailed instructions and configuration specifics, refer to the documen
 
 
 ## License
-This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
+This project is released under the Apache License 2.0. - see the [LICENSE](LICENSE) file for details.
 
 
 
