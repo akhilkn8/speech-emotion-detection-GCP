@@ -32,6 +32,8 @@ git clone https://github.com/akhilkn8/speech-emotion-detection-GCP.git
 - **Vertex AI**: Manages custom ML model training, evaluation, and deployment pipelines.
 - **Model Registry**: Stores trained models, facilitating version control and deployment.
 
+![Architecture](<assets/MLOps Project Stages.jpg>)
+
 ## Usage
 
 Each folder is equipped with a Dockerfile and respective scripts that define how to build and deploy the services on GCP. Ensure you have the correct permissions and environment variables set before running these scripts.
