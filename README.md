@@ -4,20 +4,6 @@ This repository contains all components necessary to deploy a speech emotion rec
 
 This work extends the prior development found at [this GitHub repository](https://github.com/debanjansaha-git/speech-emotion-recognition)
 
-## Repository Structure
-
-- **dags/**: Contains Directed Acyclic Graphs (DAGs) used by Cloud Composer to manage and orchestrate tasks.
-- **data_generation/**: Scripts, utilities and Docker configurations to generate or simulate new datasets. Artifacts are containerized and pushed to the Artifacts Registry.
-- **data_transformation/**: Code to perform data preprocessing and feature extraction, including drift detection. Similar to data generation, it uses Docker for containerization.
-- **model_deployment/**: Contains all necessary configurations for deploying the trained models using Vertex AI.
-- **model_evaluation/**: Code for evaluating the models including environmental variables and Docker configurations for deployment.
-- **model_serving/**: Handles the serving of the deployed models, with changes ensuring compatibility and functionality on local setups before deployment.
-- **model_training/**: Training scripts, including parameter tuning and configuration management, packaged for Vertex AI Custom Training Jobs.
-
-Utility Scripts
-- **gcr_data_gen.sh**, **gcr_data_trans.sh**, **gcr_model_deploy.sh**, **gcr_model_eval.sh**, **gcr_model_serve.sh**, **gcr_model_train.sh**
-  - Bash scripts for building and pushing Docker images to Google Cloud's Artifact Registry, specific to each component of the repository.
-
 ## Getting Started
 
 To get started with this project, clone the repository to your local machine or server environment:
@@ -32,7 +18,22 @@ git clone https://github.com/akhilkn8/speech-emotion-detection-GCP.git
 - **Vertex AI**: Manages custom ML model training, evaluation, and deployment pipelines.
 - **Model Registry**: Stores trained models, facilitating version control and deployment.
 
-![Architecture](<assets/MLOps Project Stages.jpg>)
+![Architecture](<assets/MLOps Architecture.png>)
+
+## Repository Structure
+
+- **dags/**: Contains Directed Acyclic Graphs (DAGs) used by Cloud Composer to manage and orchestrate tasks.
+- **data_generation/**: Scripts, utilities and Docker configurations to generate or simulate new datasets. Artifacts are containerized and pushed to the Artifacts Registry.
+- **data_transformation/**: Code to perform data preprocessing and feature extraction, including drift detection. Similar to data generation, it uses Docker for containerization.
+- **model_deployment/**: Contains all necessary configurations for deploying the trained models using Vertex AI.
+- **model_evaluation/**: Code for evaluating the models including environmental variables and Docker configurations for deployment.
+- **model_serving/**: Handles the serving of the deployed models, with changes ensuring compatibility and functionality on local setups before deployment.
+- **model_training/**: Training scripts, including parameter tuning and configuration management, packaged for Vertex AI Custom Training Jobs.
+
+Utility Scripts
+- **gcr_data_gen.sh**, **gcr_data_trans.sh**, **gcr_model_deploy.sh**, **gcr_model_eval.sh**, **gcr_model_serve.sh**, **gcr_model_train.sh**
+  - Bash scripts for building and pushing Docker images to Google Cloud's Artifact Registry, specific to each component of the repository.
+
 
 ## Usage
 
